@@ -21,14 +21,14 @@ export default class PostsController {
       const post = await Post.create(attributes);
       return this.returnResponse('success', [post], ['posts fetched successfully.'])
     } catch (error) {
-      let errorMessages : any[];
+      let errorMessages: any[];
 
-      if(error.messages != null){
+      if (error.messages != null) {
         errorMessages = error.messages.errors.map((message) => message.message);
-      }else{
+      } else {
         errorMessages = [error.message]
       }
-      return this.returnResponse('fail', [],errorMessages);
+      return this.returnResponse('fail', [], errorMessages);
     }
   }
 
@@ -47,14 +47,14 @@ export default class PostsController {
       // const post = await Post.create(attributes);
       return this.returnResponse('success', [post], ['posts fetched successfully.'])
     } catch (error) {
-      let errorMessages : any[];
+      let errorMessages: any[];
 
-      if(error.messages != null){
+      if (error.messages != null) {
         errorMessages = error.messages.errors.map((message) => message.message);
-      }else{
+      } else {
         errorMessages = [error.message]
       }
-      return this.returnResponse('fail', [],errorMessages);
+      return this.returnResponse('fail', [], errorMessages);
     }
   }
 
@@ -67,14 +67,39 @@ export default class PostsController {
       // const post = await Post.create(attributes);
       return this.returnResponse('success', [post], ['posts deleted successfully.'])
     } catch (error) {
-      let errorMessages : any[];
+      let errorMessages: any[];
 
-      if(error.messages != null){
+      if (error.messages != null) {
         errorMessages = error.messages.errors.map((message) => message.message);
-      }else{
+      } else {
         errorMessages = [error.message]
       }
-      return this.returnResponse('fail', [],errorMessages);
+      return this.returnResponse('fail', [], errorMessages);
+    }
+  }
+
+  public async setStatus({ request }) {
+    try {
+      const post_id = request.param('id')
+      const post = await Post.query().where('id', post_id).first();
+      const attributes : any[] = {'status' : 'active'};
+
+      if (post.status == 'active') {
+        attributes['status'] = 'inactive';
+      }
+
+      post.merge(attributes).save();
+      return this.returnResponse('success', [post], ['posts sets to ' + attributes['status'] + ' successfully.'])
+    } catch (error) {
+      let errorMessages: any[];
+
+      if (error.messages != null) {
+        errorMessages = error.messages.errors.map((message) => message.message);
+      } else {
+        errorMessages = [error.message]
+      }
+      return this.returnResponse('fail', [], errorMessages);
+
     }
   }
 

@@ -26,4 +26,5 @@ Route.get('/', async () => {
 
 Route.group(() => {
   Route.resource('posts', 'PostsController').apiOnly();
+  Route.post('posts/:id/status', 'PostsController.setStatus');
 }).prefix('/api');

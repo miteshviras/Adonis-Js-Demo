@@ -21,10 +21,13 @@
 import Route from '@ioc:Adonis/Core/Route'
 
 Route.get('/', async () => {
-  return { hello: 'world' }
+  return { welcome: 'Welcome to adonis project have a great day.' }
 })
 
 Route.group(() => {
+
+
+  // posts
   Route.resource('posts', 'PostsController').apiOnly();
   Route.post('posts/:id/status', 'PostsController.setStatus');
 }).prefix('/api');

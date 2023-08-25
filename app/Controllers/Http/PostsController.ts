@@ -6,7 +6,8 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator';
 export default class PostsController {
   public async index({ request }) {
     try {
-      const posts = await Post.all();
+      const posts = await Post.$getRelation('postImages')
+      return posts
       return this.returnResponse('success', posts, ['posts fetched successfully.'])
     } catch (error) {
       return this.returnResponse('success', [error.message]);

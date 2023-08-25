@@ -26,6 +26,8 @@ Route.get('/', async () => {
 
 Route.group(() => {
 
+    Route.post('/login','AuthController.login')
+    Route.post('/register','AuthController.register')
 
   // posts
   Route.resource('posts', 'PostsController').apiOnly();

@@ -26,10 +26,12 @@ Route.get('/', async () => {
 
 Route.group(() => {
 
-    Route.post('/login','AuthController.login')
-    Route.post('/register','AuthController.register')
+  Route.post('/login', 'AuthController.login')
+  Route.post('/register', 'AuthController.register')
 
-  // posts
-  Route.resource('posts', 'PostsController').apiOnly();
-  Route.post('posts/:id/status', 'PostsController.setStatus');
+  Route.group(() => {
+    // posts
+    Route.resource('posts', 'PostsController').apiOnly();
+    Route.post('posts/:id/status', 'PostsController.setStatus');
+  }).middleware('customAuth')
 }).prefix('/api');

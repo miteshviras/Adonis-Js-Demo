@@ -41,4 +41,5 @@ Server.middleware.register([
 |
 */
 Server.middleware.registerNamed({
+  customAuth: () => import('App/Middleware/CustomAuthMiddleware')
 })

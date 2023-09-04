@@ -4,42 +4,41 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator';
 
 
 export default class PostsController {
-  public async index({ request }) {
+  private wrong = 'Something went wrong'
+
+  public async index({ request, response }: HttpContextContract) {
     try {
-      const posts = await Post.$getRelation('postImages')
-      return posts
-      return this.returnResponse('success', posts, ['posts fetched successfully.'])
+      const posts = await Post.query().preload('postImages', (postImagesQuery) => {
+        postImagesQuery
+      })
+      return this.returnResponse(response, true, 'posts fetched successfully.', 201, [post]);
     } catch (error) {
-      return this.returnResponse('success', [error.message]);
+      return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
-  public async store({ request }: HttpContextContract) {
+  public async store({ request, response }: HttpContextContract) {
     try {
       // checked the validation if fails directly goes in catch.
       const attributes = await this.commonValidation(request);
 
       const post = await Post.create(attributes);
-      return this.returnResponse('success', [post], ['posts fetched successfully.'])
+      return this.returnResponse(response, true, 'posts added successfully.', 201, [post]);
     } catch (error) {
-      let errorMessages: any[];
-
-      if (error.messages != null) {
-        errorMessages = error.messages.errors.map((message) => message.message);
-      } else {
-        errorMessages = [error.message]
-      }
-      return this.returnResponse('fail', [], errorMessages);
+      return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
   public async show({ }: HttpContextContract) { }
 
-  public async update({ request }: HttpContextContract) {
+  public async update({ request, response }: HttpContextContract) {
     const post_id = request.param('id')
     try {
+      console.clear();
       // checked the validation if fails directly goes in catch.
       const attributes = await this.commonValidation(request);
+      const files = await this.fileUpload(request)
+      return files
       const post = await Post.query().where('id', post_id).first();
 
       // this merge method will merge the attributes into the methods.
@@ -48,66 +47,52 @@ export default class PostsController {
       // const post = await Post.create(attributes);
       return this.returnResponse('success', [post], ['posts fetched successfully.'])
     } catch (error) {
-      let errorMessages: any[];
-
-      if (error.messages != null) {
-        errorMessages = error.messages.errors.map((message) => message.message);
-      } else {
-        errorMessages = [error.message]
-      }
-      return this.returnResponse('fail', [], errorMessages);
+      return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
-  public async destroy({ request }: HttpContextContract) {
+  public async destroy({ request, response }: HttpContextContract) {
     const post_id = request.param('id')
     try {
       const post = await Post.query().where('id', post_id).first();
       await post.delete()
 
       // const post = await Post.create(attributes);
-      return this.returnResponse('success', [post], ['posts deleted successfully.'])
+      return this.returnResponse(response, true, 'posts deleted successfully.', 201, [post]);
     } catch (error) {
-      let errorMessages: any[];
-
-      if (error.messages != null) {
-        errorMessages = error.messages.errors.map((message) => message.message);
-      } else {
-        errorMessages = [error.message]
-      }
-      return this.returnResponse('fail', [], errorMessages);
+      return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
-  public async setStatus({ request }) {
+  public async setStatus({ request, response }: HttpContextContract) {
     try {
       const post_id = request.param('id')
       const post = await Post.query().where('id', post_id).first();
-      const attributes : any[] = {'status' : 'active'};
+      const attributes: any[] = { 'status': 'active' };
 
       if (post.status == 'active') {
         attributes['status'] = 'inactive';
       }
 
       post.merge(attributes).save();
-      return this.returnResponse('success', [post], ['posts sets to ' + attributes['status'] + ' successfully.'])
+      return this.returnResponse(response, true, 'posts sets to ' + attributes['status'] + ' successfully.', 201, []);
     } catch (error) {
-      let errorMessages: any[];
-
-      if (error.messages != null) {
-        errorMessages = error.messages.errors.map((message) => message.message);
-      } else {
-        errorMessages = [error.message]
-      }
-      return this.returnResponse('fail', [], errorMessages);
-
+      return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
-  private returnResponse(status: string = 'success', data: any[] = [], messages: string[] = [], code: number = 200) {
-    return [{
-      status: status, data: data, messages: messages, code: code
-    }]
+  private returnResponse(response, is_success: boolean, message: string, status: number = 200, data: any[] = [], errors: any[] = []) {
+    let errorMessages: any[] = [];
+
+    if(errors.length > 0){
+      errorMessages = errors.messages.errors
+      if (errors.messages != null) {
+      } else {
+        errorMessages = [errors.message]
+      }
+    }
+
+    return response.status(status).json({ success: is_success, status: status, errors: errorMessages, message: message, data: data })
   }
 
   // this is common validation function of each module
@@ -141,5 +126,14 @@ export default class PostsController {
       schema: validationSchema,
       messages: customMessages
     });
+  }
+
+  private async fileUpload(request) {
+    const coverImage = request.files('images', {
+      extnames: ['jpg', 'png', 'jpeg'],
+      size: '2kb'
+    })
+    console.log(coverImage);
+    return coverImage
   }
 }

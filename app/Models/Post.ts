@@ -24,6 +24,8 @@ export default class Post extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
 
-  @hasMany(() => PostImage)
+  @hasMany(() => PostImage, {
+    foreignKey: "post_id",
+  })
   public postImages: HasMany<typeof PostImage>
 }

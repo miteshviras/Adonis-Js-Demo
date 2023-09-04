@@ -30,6 +30,10 @@ Route.group(() => {
   Route.post('/register', 'AuthController.register')
 
   Route.group(() => {
+
+    // loged in user profile
+    Route.resource('profile','ProfilesController').only(['store','destroy','index'])
+
     // posts
     Route.resource('posts', 'PostsController').apiOnly();
     Route.post('posts/:id/status', 'PostsController.setStatus');

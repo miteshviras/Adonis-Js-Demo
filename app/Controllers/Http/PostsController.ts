@@ -1,16 +1,20 @@
+import Drive from '@ioc:Adonis/Core/Drive';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import Post from 'App/Models/Post';
 import { schema, rules } from '@ioc:Adonis/Core/Validator';
 import PostImage from 'App/Models/PostImage';
-import Helper from 'App/Helpers/Helper';
+import { isEmpty } from 'App/Helpers/Helper';
+import PostResource from 'App/Resources/PostResource';
 
 
 export default class PostsController {
-  private wrong = 'Something went wrong'
-  public helper
+  private wrong = 'Something went wrong';
+  public helper;
+  public postResource;
 
   constructor() {
-    this.helper = new Helper
+    // this.helper = new Helper
+    this.postResource = new PostResource
   }
 
   public async index({ request, response }: HttpContextContract) {
@@ -18,6 +22,7 @@ export default class PostsController {
       const posts = await Post.query().preload('postImages', (postImagesQuery) => {
         postImagesQuery
       })
+      return this.postResource.resource(posts)
       return this.returnResponse(response, true, 'posts fetched successfully.', 201, posts);
     } catch (error) {
       return this.returnResponse(response, false, this.wrong, 500, [], error);
@@ -45,15 +50,18 @@ export default class PostsController {
       const attributes = await this.commonValidation(request, true);
       const post = await Post.query().where('id', post_id).preload('postImages').first();
 
-      if(!this.helper.isEmpty(request.files('images'))){
+      if (!isEmpty(request.files('images'))) {
         const fileDestination = 'uploads/images/';
         for (let image of request.files('images')) {
           const fileName = fileDestination + image.clientName;
-          await image.move(fileDestination);
+          await Drive.put(fileName, image.clientName, {
+            visibility: 'public',
+            contentType: image.type + "/" + image.subtype
+          })
 
           const postImage = await PostImage.create({
-            'post_id' : request.param('id'),
-            'url' : fileName
+            'post_id': request.param('id'),
+            'url': fileName
           });
         }
       }

@@ -1,7 +1,6 @@
-export default class Helper {
 
   // global function to check the satisfiable conditions
-  public isEmpty(value) {
+  function isEmpty(value) {
     return (
       value === undefined ||
       value === null ||
@@ -12,4 +11,9 @@ export default class Helper {
       (typeof value === 'object' && Object.keys(value).length === 0)
     );
   }
-}
+
+
+  // Export the specific function you want to import in other files
+  module.exports = {
+    isEmpty
+  };

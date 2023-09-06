@@ -1,4 +1,4 @@
-import { isEmpty } from 'App/Helpers/Helper';
+import { isEmpty, getFilePath } from 'App/Helpers/Helper';
 import Post from "App/Models/Post"
 import Drive from '@ioc:Adonis/Core/Drive'
 
@@ -11,11 +11,11 @@ export default class PostResource {
 
         if (!isEmpty(post.postImages)) {
           images = await Promise.all(post.postImages.map(async (image) => {
-            const url = await Drive.get(image.url);
+            const url = await Drive.getUrl(image.url);
             return {
               id: image.id,
               post_id: image.post_id,
-              url: url
+              url: getFilePath(url)
             }
           }));
         }

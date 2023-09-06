@@ -1,9 +1,8 @@
-import Drive from '@ioc:Adonis/Core/Drive';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import Post from 'App/Models/Post';
 import { schema, rules } from '@ioc:Adonis/Core/Validator';
 import PostImage from 'App/Models/PostImage';
-import { isEmpty } from 'App/Helpers/Helper';
+import { isEmpty, returnResponse } from 'App/Helpers/Helper';
 import PostResource from 'App/Resources/PostResource';
 
 
@@ -22,8 +21,8 @@ export default class PostsController {
       const posts = await Post.query().preload('postImages', (postImagesQuery) => {
         postImagesQuery
       })
-      return this.postResource.resource(posts)
-      return this.returnResponse(response, true, 'posts fetched successfully.', 201, posts);
+
+      // return returnResponse(true, 'posts fetched successfully.', 201, await this.postResource.resource(posts));
     } catch (error) {
       return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
@@ -51,14 +50,13 @@ export default class PostsController {
       const post = await Post.query().where('id', post_id).preload('postImages').first();
 
       if (!isEmpty(request.files('images'))) {
-        const fileDestination = 'uploads/images/';
+        const fileDestination = 'uploads/';
         for (let image of request.files('images')) {
           const fileName = fileDestination + image.clientName;
-          await Drive.put(fileName, image.clientName, {
-            visibility: 'public',
-            contentType: image.type + "/" + image.subtype
-          })
 
+          await image.move(fileDestination, {
+            name: image.clientName
+          });
           const postImage = await PostImage.create({
             'post_id': request.param('id'),
             'url': fileName

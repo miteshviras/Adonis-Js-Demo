@@ -1,17 +1,24 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import Post from 'App/Models/Post';
 import { schema, rules } from '@ioc:Adonis/Core/Validator';
+import PostImage from 'App/Models/PostImage';
+import Helper from 'App/Helpers/Helper';
 
 
 export default class PostsController {
   private wrong = 'Something went wrong'
+  public helper
+
+  constructor() {
+    this.helper = new Helper
+  }
 
   public async index({ request, response }: HttpContextContract) {
     try {
       const posts = await Post.query().preload('postImages', (postImagesQuery) => {
         postImagesQuery
       })
-      return this.returnResponse(response, true, 'posts fetched successfully.', 201, [post]);
+      return this.returnResponse(response, true, 'posts fetched successfully.', 201, posts);
     } catch (error) {
       return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
@@ -29,23 +36,34 @@ export default class PostsController {
     }
   }
 
-  public async show({ }: HttpContextContract) { }
+  // public async show({ }: HttpContextContract) { }
 
   public async update({ request, response }: HttpContextContract) {
     const post_id = request.param('id')
     try {
-      console.clear();
       // checked the validation if fails directly goes in catch.
-      const attributes = await this.commonValidation(request);
-      const files = await this.fileUpload(request)
-      return files
-      const post = await Post.query().where('id', post_id).first();
+      const attributes = await this.commonValidation(request, true);
+      const post = await Post.query().where('id', post_id).preload('postImages').first();
+
+      if(!this.helper.isEmpty(request.files('images'))){
+        const fileDestination = 'uploads/images/';
+        for (let image of request.files('images')) {
+          const fileName = fileDestination + image.clientName;
+          await image.move(fileDestination);
+
+          const postImage = await PostImage.create({
+            'post_id' : request.param('id'),
+            'url' : fileName
+          });
+        }
+      }
 
       // this merge method will merge the attributes into the methods.
       post.merge(attributes).save();
 
       // const post = await Post.create(attributes);
-      return this.returnResponse('success', [post], ['posts fetched successfully.'])
+      return this.returnResponse(response, true, 'posts fetched successfully.', 201, [])
+      // return this.returnResponse('success', [post], ['posts fetched successfully.'])
     } catch (error) {
       return this.returnResponse(response, false, this.wrong, 500, [], error);
     }
@@ -84,22 +102,20 @@ export default class PostsController {
   private returnResponse(response, is_success: boolean, message: string, status: number = 200, data: any[] = [], errors: any[] = []) {
     let errorMessages: any[] = [];
 
-    if(errors.length > 0){
+    if (errors.messages != null) {
       errorMessages = errors.messages.errors
-      if (errors.messages != null) {
-      } else {
-        errorMessages = [errors.message]
-      }
+    } else {
+      errorMessages = [errors.message]
     }
 
     return response.status(status).json({ success: is_success, status: status, errors: errorMessages, message: message, data: data })
   }
 
   // this is common validation function of each module
-  private async commonValidation(request) {
+  private async commonValidation(request, skipFile = false) {
 
     // the schema.create schema methods is default's required.
-    const validationSchema = schema.create({
+    const validation = {
       title: schema.string({ trim: true }, [
         // rules.required(),
         rules.minLength(3),
@@ -111,8 +127,16 @@ export default class PostsController {
       status: schema.enum(['active', 'inactive'], [
         // rules.required(),
       ]),
-    });
+    };
 
+    if (skipFile == false) {
+      validation['images'] = schema.array().members(schema.file({
+        size: '2mb',
+        extnames: ['jpg', 'gif', 'png'],
+      }))
+    }
+
+    const validationSchema = schema.create(validation);
     const customMessages = {
       'title.required': 'The title field is required.',
       'title.minLength': 'The title must be at least 3 characters long.',
@@ -120,6 +144,9 @@ export default class PostsController {
       'description.minLength': 'The description must be at least 10 characters long.',
       'status.required': 'The status field is required.',
       'status.enum': 'Invalid status value. Must be either "active" or "inactive".',
+      'images.required': 'Images are required.',
+      'file.size': 'Image size should be max 2mb.',
+      'file.extnames': 'Image should be the type of jpg,gif,png.',
     };
 
     return await request.validate({
@@ -129,11 +156,6 @@ export default class PostsController {
   }
 
   private async fileUpload(request) {
-    const coverImage = request.files('images', {
-      extnames: ['jpg', 'png', 'jpeg'],
-      size: '2kb'
-    })
-    console.log(coverImage);
-    return coverImage
+
   }
 }

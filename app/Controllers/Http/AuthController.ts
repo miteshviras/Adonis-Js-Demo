@@ -1,17 +1,22 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import User from 'App/Models/User';
 import { schema, rules } from '@ioc:Adonis/Core/Validator';
+import { isEmpty, returnResponse } from 'App/Helpers/Helper';
+import AuthResource from 'App/Resources/AuthResource';
 
 
 export default class AuthController {
+  private wrong = 'Something went wrong';
+
 
   public async login({ auth, request, response }: HttpContextContract) {
     try {
       const attributes = await this.validation(request)
       const token = await auth.use('api').attempt(attributes['email'], attributes['password'])
-      return this.returnResponse(response, true, 'Login successful', 201, { token: token.token })
+      const user = await auth.use('api').user
+      return returnResponse(response, true, 'Login successful', 201, await (new AuthResource).resource(user, { token: token.token }))
     } catch (error) {
-      return this.errorCapturing(error)
+      return returnResponse(response, false, 'invalid credentials', 500, [], error);
     }
   }
 
@@ -20,9 +25,9 @@ export default class AuthController {
       const attributes = await this.validation(request, true)
       const user = await User.create(attributes)
       const token = await auth.use('api').attempt(attributes['email'], attributes['password'])
-      return this.returnResponse(response, true, 'Register successful', 201, { token: token.token })
+      return returnResponse(response, true, 'Register successful', 201, { token: token.token })
     } catch (error) {
-      return this.errorCapturing(error)
+      return returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
@@ -68,18 +73,4 @@ export default class AuthController {
     });
   }
 
-  private errorCapturing(error) {
-    let errorMessages: any[];
-
-    if (error.messages != null) {
-      errorMessages = error.messages
-    } else {
-      errorMessages = [error.message]
-    }
-    return errorMessages
-  }
-
-  private returnResponse(response, is_success: boolean, message: string, status: number = 200, data: any[] = []) {
-    return response.status(status).json({ success: is_success, status: status, message: message, data: data })
-  }
 }

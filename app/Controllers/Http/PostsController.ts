@@ -21,10 +21,9 @@ export default class PostsController {
       const posts = await Post.query().preload('postImages', (postImagesQuery) => {
         postImagesQuery
       })
-
-      // return returnResponse(true, 'posts fetched successfully.', 201, await this.postResource.resource(posts));
+      return returnResponse(response, true, 'posts fetched successfully.', 200, await this.postResource.resource(posts));
     } catch (error) {
-      return this.returnResponse(response, false, this.wrong, 500, [], error);
+      return returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
@@ -34,9 +33,9 @@ export default class PostsController {
       const attributes = await this.commonValidation(request);
 
       const post = await Post.create(attributes);
-      return this.returnResponse(response, true, 'posts added successfully.', 201, [post]);
+      return returnResponse(response, true, 'posts added successfully.', 201, [post]);
     } catch (error) {
-      return this.returnResponse(response, false, this.wrong, 500, [], error);
+      return returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
@@ -68,10 +67,10 @@ export default class PostsController {
       post.merge(attributes).save();
 
       // const post = await Post.create(attributes);
-      return this.returnResponse(response, true, 'posts fetched successfully.', 201, [])
-      // return this.returnResponse('success', [post], ['posts fetched successfully.'])
+      return returnResponse(response, true, 'posts fetched successfully.', 201, [])
+      // return returnResponse('success', [post], ['posts fetched successfully.'])
     } catch (error) {
-      return this.returnResponse(response, false, this.wrong, 500, [], error);
+      return returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
@@ -82,9 +81,9 @@ export default class PostsController {
       await post.delete()
 
       // const post = await Post.create(attributes);
-      return this.returnResponse(response, true, 'posts deleted successfully.', 201, [post]);
+      return returnResponse(response, true, 'posts deleted successfully.', 201, [post]);
     } catch (error) {
-      return this.returnResponse(response, false, this.wrong, 500, [], error);
+      return returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
 
@@ -99,22 +98,10 @@ export default class PostsController {
       }
 
       post.merge(attributes).save();
-      return this.returnResponse(response, true, 'posts sets to ' + attributes['status'] + ' successfully.', 201, []);
+      return returnResponse(response, true, 'posts sets to ' + attributes['status'] + ' successfully.', 201, []);
     } catch (error) {
-      return this.returnResponse(response, false, this.wrong, 500, [], error);
+      return returnResponse(response, false, this.wrong, 500, [], error);
     }
-  }
-
-  private returnResponse(response, is_success: boolean, message: string, status: number = 200, data: any[] = [], errors: any[] = []) {
-    let errorMessages: any[] = [];
-
-    if (errors.messages != null) {
-      errorMessages = errors.messages.errors
-    } else {
-      errorMessages = [errors.message]
-    }
-
-    return response.status(status).json({ success: is_success, status: status, errors: errorMessages, message: message, data: data })
   }
 
   // this is common validation function of each module
@@ -123,19 +110,17 @@ export default class PostsController {
     // the schema.create schema methods is default's required.
     const validation = {
       title: schema.string({ trim: true }, [
-        // rules.required(),
         rules.minLength(3),
       ]),
       description: schema.string({ trim: true }, [
-        // rules.required(),
         rules.minLength(10),
       ]),
       status: schema.enum(['active', 'inactive'], [
-        // rules.required(),
       ]),
     };
 
-    if (skipFile == false) {
+    if (skipFile == false || isEmpty(request.files('images'))) {
+
       validation['images'] = schema.array().members(schema.file({
         size: '2mb',
         extnames: ['jpg', 'gif', 'png'],
@@ -159,9 +144,5 @@ export default class PostsController {
       schema: validationSchema,
       messages: customMessages
     });
-  }
-
-  private async fileUpload(request) {
-
   }
 }

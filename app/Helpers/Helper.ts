@@ -1,6 +1,7 @@
-import { Response } from "@adonisjs/core/build/standalone";
-import CommonResponse from "App/Helpers/CommonResponse";
+/************************/
 // global function to check the satisfiable conditions
+/************************/
+
 function isEmpty(value) {
   return (
     value === undefined ||
@@ -13,13 +14,36 @@ function isEmpty(value) {
   );
 }
 
+
+
+/************************/
+// get full file path with url
+/************************/
+
 function getFilePath(path: string): string {
   return process.env.APP_URL + path;
 }
 
-function returnResponse(is_success: boolean, message: string, status: number = 200, data: any[] = [], errors: any[] = []) {
-  const commonResponse = (new CommonResponse).returnResponse(Response,);
-  return commonResponse.returnResponse(is_success,message,status,data,errors);
+
+
+/************************/
+/*
+@param response is response contact.
+@param status indicates status code.
+*/
+/************************/
+function returnResponse(response, is_success: boolean, message: string, status: number = 200, data: any[] = [], errors: any[] = []) {
+  let errorMessages: any[] = [];
+
+  if (!isEmpty(errors)) {
+    if (errors.messages != null) {
+      errorMessages = errors.messages.errors
+    } else {
+      errorMessages = [errors.message]
+    }
+  }
+
+  return response.status(status).json({ success: is_success, status: status, errors: errorMessages, message: message, data: data })
 }
 
 

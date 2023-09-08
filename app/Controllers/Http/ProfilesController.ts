@@ -1,11 +1,13 @@
+import { returnResponse } from 'App/Helpers/Helper';
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator';
+import AuthResource from 'App/Resources/AuthResource';
 
 
 export default class ProfilesController {
   public async index({ auth, request, response }: HttpContextContract) {
     const thisAuth = await auth.use('api').user
-    return this.returnResponse(response, true, 'Profile fetched successfully.', 200, thisAuth)
+    return returnResponse(response, true, 'Profile fetched successfully.', 200, await (new AuthResource).resource(thisAuth))
   }
 
   // here we update the profile
@@ -30,9 +32,9 @@ export default class ProfilesController {
       });
 
       thisAuth.merge(attributes).save();
-      return this.returnResponse(response, true, 'Profile Updated successfully.', 200, thisAuth)
+      return returnResponse(response, true, 'Profile Updated successfully.', 200, await (new AuthResource).resource(thisAuth))
     } catch (error) {
-      return this.returnResponse(response, false, 'something went wrong', 422, [], error);
+      return returnResponse(response, false, 'something went wrong', 500, [], error);
     }
   }
 
@@ -40,24 +42,15 @@ export default class ProfilesController {
     try {
       const thisAuth = await auth.use('api').user
       thisAuth.delete();
-      return this.returnResponse(response, true, 'Your Account has been deleted.', 200, thisAuth)
+      return returnResponse(response, true, 'Your Account has been deleted.', 200, [])
     } catch (error) {
-      return this.returnResponse(response, false, 'something went wrong', 422, [], error);
+      return returnResponse(response, false, 'something went wrong', 500, [], error);
     }
   }
 
-  private returnResponse(response, is_success: boolean, message: string, status: number = 200, data: any[] = [], errors: any[] = []) {
-    let errorMessages: any[] = [];
-
-    if (errors.messages != null) {
-      errorMessages = errors.messages.errors
-    } else {
-      if (errors.message != null) {
-        errorMessages = [errors.message]
-      }
-    }
-
-    return response.status(status).json({ success: is_success, status: status, message: message, data: data, errors: errorMessages })
+  public async logout({ auth, response }: HttpContextContract) {
+    await auth.use('api').revoke()
+    return returnResponse(response, true, 'Logout successfully', 200, [])
   }
 
 }

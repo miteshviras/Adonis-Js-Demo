@@ -32,7 +32,8 @@ Route.group(() => {
   Route.group(() => {
 
     // loged in user profile
-    Route.resource('profile','ProfilesController').only(['store','destroy','index'])
+    Route.resource('profile', 'ProfilesController').only(['store', 'destroy', 'index'])
+    Route.post('profile/logout', 'ProfilesController.logout')
 
     // posts
     Route.resource('posts', 'PostsController').apiOnly();

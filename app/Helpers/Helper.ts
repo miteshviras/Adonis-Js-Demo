@@ -1,5 +1,6 @@
 import Drive from '@ioc:Adonis/Core/Drive';
 import { FileJSON } from "@ioc:Adonis/Core/BodyParser";
+import Application from '@ioc:Adonis/Core/Application'
 
 /************************/
 // global function to check the satisfiable conditions
@@ -51,10 +52,12 @@ function returnResponse(response, is_success: boolean, message: string, status: 
 }
 
 async function fileUploads(file: FileJSON, fileDestination = 'uploads/') {
-  await file.move(fileDestination, {
-    name: file.clientName
+  let fileName = file.clientName;
+  fileName = Date.now() + '-' + fileName.replace(' ', '-');
+  await file.move(Application.tmpPath(fileDestination), {
+    name: fileName
   });
-  return fileDestination + file.clientName;
+  return fileName;
 }
 
 

@@ -12,7 +12,6 @@ export default class PostsController {
   public postResource;
 
   constructor() {
-    // this.helper = new Helper
     this.postResource = new PostResource
   }
 
@@ -114,7 +113,8 @@ export default class PostsController {
       }
 
       post.merge(attributes).save();
-      return returnResponse(response, true, 'posts sets to ' + attributes['status'] + ' successfully.', 201, []);
+      await post?.load('postImages')
+      return returnResponse(response, true, 'posts sets to ' + attributes['status'] + ' successfully.', 201, await this.postResource.resource(post));
     } catch (error) {
       return returnResponse(response, false, this.wrong, 500, [], error);
     }

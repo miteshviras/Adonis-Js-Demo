@@ -25,7 +25,7 @@ export default class AuthController {
       const attributes = await this.validation(request, true)
       const user = await User.create(attributes)
       const token = await auth.use('api').attempt(attributes['email'], attributes['password'])
-      return returnResponse(response, true, 'Register successful', 201, { token: token.token })
+      return returnResponse(response, true, 'Register successful', 201, await (new AuthResource).resource(user, { token: token.token }))
     } catch (error) {
       return returnResponse(response, false, this.wrong, 500, [], error);
     }

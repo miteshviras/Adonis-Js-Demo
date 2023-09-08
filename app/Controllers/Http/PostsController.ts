@@ -2,7 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
 import Post from 'App/Models/Post';
 import { schema, rules } from '@ioc:Adonis/Core/Validator';
 import PostImage from 'App/Models/PostImage';
-import { isEmpty, returnResponse } from 'App/Helpers/Helper';
+import { isEmpty, returnResponse, fileUploads } from 'App/Helpers/Helper';
 import PostResource from 'App/Resources/PostResource';
 
 
@@ -21,7 +21,7 @@ export default class PostsController {
       const posts = await Post.query().preload('postImages', (postImagesQuery) => {
         postImagesQuery
       })
-      return returnResponse(response, true, 'posts fetched successfully.', 200, await this.postResource.resource(posts));
+      return returnResponse(response, true, 'posts fetched successfully.', 200, await this.postResource.collection(posts));
     } catch (error) {
       return returnResponse(response, false, this.wrong, 500, [], error);
     }
@@ -32,9 +32,21 @@ export default class PostsController {
       // checked the validation if fails directly goes in catch.
       const attributes = await this.commonValidation(request);
 
+      // deleting images key from attributes
+      delete attributes['images']
       const post = await Post.create(attributes);
-      return returnResponse(response, true, 'posts added successfully.', 201, [post]);
+
+      for (let image of request.files('images')) {
+        await PostImage.create({
+          'post_id': post.id,
+          'url': await fileUploads(image)
+        });
+      }
+      // this method will load latest relationship datas.
+      await post.load('postImages')
+      return returnResponse(response, true, 'posts added successfully.', 201, await this.postResource.resource(post));
     } catch (error) {
+      console.error(error);
       return returnResponse(response, false, this.wrong, 500, [], error);
     }
   }
@@ -48,27 +60,24 @@ export default class PostsController {
       const attributes = await this.commonValidation(request, true);
       const post = await Post.query().where('id', post_id).preload('postImages').first();
 
+      if (isEmpty(post)) {
+        return returnResponse(response, false, 'Requested post not found.', 500, []);
+      }
       if (!isEmpty(request.files('images'))) {
-        const fileDestination = 'uploads/';
         for (let image of request.files('images')) {
-          const fileName = fileDestination + image.clientName;
-
-          await image.move(fileDestination, {
-            name: image.clientName
-          });
           const postImage = await PostImage.create({
             'post_id': request.param('id'),
-            'url': fileName
+            'url': await fileUploads(image)
           });
         }
       }
 
       // this merge method will merge the attributes into the methods.
       post.merge(attributes).save();
+      // this method will load latest relationship datas.
+      await post.load('postImages')
 
-      // const post = await Post.create(attributes);
-      return returnResponse(response, true, 'posts fetched successfully.', 201, [])
-      // return returnResponse('success', [post], ['posts fetched successfully.'])
+      return returnResponse(response, true, 'posts added successfully.', 201, await this.postResource.resource(post));
     } catch (error) {
       return returnResponse(response, false, this.wrong, 500, [], error);
     }
@@ -77,11 +86,13 @@ export default class PostsController {
   public async destroy({ request, response }: HttpContextContract) {
     const post_id = request.param('id')
     try {
-      const post = await Post.query().where('id', post_id).first();
-      await post.delete()
+      const post = await Post.query().where('id', post_id).preload('postImages').first();
+      if (isEmpty(post)) {
+        return returnResponse(response, false, 'Requested post not found.', 500, []);
+      }
 
-      // const post = await Post.create(attributes);
-      return returnResponse(response, true, 'posts deleted successfully.', 201, [post]);
+      await post.delete()
+      return returnResponse(response, true, 'posts deleted successfully.', 201, await this.postResource.resource(post));
     } catch (error) {
       return returnResponse(response, false, this.wrong, 500, [], error);
     }
@@ -91,7 +102,12 @@ export default class PostsController {
     try {
       const post_id = request.param('id')
       const post = await Post.query().where('id', post_id).first();
-      const attributes: any[] = { 'status': 'active' };
+
+      if (isEmpty(post)) {
+        return returnResponse(response, false, 'Requested post not found.', 500, []);
+      }
+
+      const attributes = { 'status': 'active' };
 
       if (post.status == 'active') {
         attributes['status'] = 'inactive';

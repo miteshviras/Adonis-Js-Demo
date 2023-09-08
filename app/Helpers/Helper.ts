@@ -1,3 +1,6 @@
+import Drive from '@ioc:Adonis/Core/Drive';
+import { FileJSON } from "@ioc:Adonis/Core/BodyParser";
+
 /************************/
 // global function to check the satisfiable conditions
 /************************/
@@ -20,8 +23,9 @@ function isEmpty(value) {
 // get full file path with url
 /************************/
 
-function getFilePath(path: string): string {
-  return process.env.APP_URL + path;
+async function getFilePath(path: string) {
+  let url = await Drive.getUrl(path)
+  return process.env.APP_URL + url;
 }
 
 
@@ -46,8 +50,15 @@ function returnResponse(response, is_success: boolean, message: string, status: 
   return response.status(status).json({ success: is_success, status: status, errors: errorMessages, message: message, data: data })
 }
 
+async function fileUploads(file: FileJSON, fileDestination = 'uploads/') {
+  await file.move(fileDestination, {
+    name: file.clientName
+  });
+  return fileDestination + file.clientName;
+}
+
 
 // Export the specific function you want to import in other files
 module.exports = {
-  isEmpty, getFilePath, returnResponse
+  isEmpty, getFilePath, returnResponse, fileUploads
 };
